@@ -1,0 +1,66 @@
+Assignment 1 : Replica Set
+
+Write a common use-case, where you will use a daemon set instead of replica set.
+
+Answer : Daemon set :It ensures that a single instance of a pod is running on each node in a cluster.
+No need to set replica set As it depneds on number of nodes, it dynamically increase the pods.
+        1) DS is used in system oriented for monitoring system
+        2) DS can be used in backup job for running backups of your etcd, MySQL data files
+        3) Logging
+
+Assignment 2 : Deployment
+
+Suppose you have deployed your application using a deployment controller. Assume the initial number of replicas is one. Write the steps needed to update a container's image using deployment, making sure that there is zero downtime.
+
+    Answer: Suppose you have using Deployment controller
+            We use following command to change the image for having zero downtime
+                    kubectl patch deployment kubia -p '{"spec": {"minReadySeconds": 10}}'
+            For changing the image we should use following command
+                    kubectl set image deployment kubia nodejs=luksa/kubia:v2
+            To check the the Image has changes we should use follwowing command
+                    kubectl get rs
+                    kubectl get po -o wide
+                    take IP of any one running pod and check which version running
+                    use curl <IP>:8080
+
+Assignment 3 : Service
+
+You have deployed an application, that is listening at port 8000. You used a replica-set to deploy it and created a NodePort service to make it accessible. But when you test it, somehow the application is not reachable at the port. Write down your approach and sequentially all the steps that you will take to find out the issue.
+      Answer :    We need to check the pod whether it is running
+                        kubectl get pods
+                  Check the Firewall using below command. We need to see allowtraffic for nodeport
+                        sudo iptables -L
+                  Check that the NodePort is correctly configured to use the correct IP address and port
+                        kubectl describe services
+
+Assignment 4 : VOTINGapp
+
+Answer : 
+Observation for Worker pod When we delete it
+
+1) When we delete the worker pod new pod is getting created with new suffix name with new IP.
+  [root@ip-172-31-40-240 ~]# kubectl delete po worker-dd46d7584-zqw2n
+pod "worker-dd46d7584-zqw2n" deleted
+2) It will clear off the old data and show new data 
+[root@ip-172-31-40-240 ~]# kubectl logs worker-dd46d7584-t4rqr
+Connected to db
+Found redis at 10.100.64.24
+Connecting to redis
+Processing vote for 'b' by 'a4a5b3dfbfa5578'
+3) Front end there is no chnage 
+
+Observation for DB pod When we delete it
+1) when we delete DB pod, the Data is gone becuase k8s is stateless ( it will start fresh)
+[root@ip-172-31-40-240 ~]# kubectl delete po db-b54cd94f4-n4vzh
+pod "db-b54cd94f4-n4vzh" deleted
+2) Worker and result pod gets restarted
+   [root@ip-172-31-40-240 ~]# kubectl get po -o wide
+NAME                      READY   STATUS    RESTARTS   AGE     IP               NODE                                               NOMINATED NODE   READINESS GATES
+db-b54cd94f4-mwgcr        1/1     Running   0          8m13s   192.168.224.79   ip-172-31-47-239.ap-southeast-1.compute.internal   <none>           <none>
+redis-868d64d78-46x57     1/1     Running   0          4d2h    192.168.224.70   ip-172-31-47-239.ap-southeast-1.compute.internal   <none>           <none>
+result-5d57b59f4b-f68kj   1/1     Running   2          4d2h    192.168.224.71   ip-172-31-47-239.ap-southeast-1.compute.internal   <none>           <none>
+vote-94849dc97-l7qt4      1/1     Running   0          4d2h    192.168.224.74   ip-172-31-47-239.ap-southeast-1.compute.internal   <none>           <none>
+worker-dd46d7584-t4rqr    1/1     Running   1          13m     192.168.224.78   ip-172-31-47-239.ap-southeast-1.compute.internal   <none>           <none>
+3) When we delete the DB pod new pod is getting created with new suffix name with new IP.
+4) Front end there is no chnage 
+
